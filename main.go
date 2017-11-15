@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"text/template"
 
 	log "github.com/Sirupsen/logrus"
@@ -13,6 +14,9 @@ import (
 )
 
 func main() {
+	var fh *os.File
+	var err error
+
 	o := mustResolveOptions(os.Args[1:])
 
 	_, o, b, err := buildChart(os.Stdin, o)
@@ -23,37 +27,50 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tmpfile, err := ioutil.TempFile("", "chartData")
-	if err != nil {
-		log.WithField("err", err).Fatalf("Could not create temporary file to store the chart.")
-	}
+	if strings.Compare(o.fileName, "") == 0 {
+		fh, err = ioutil.TempFile("", "chartData")
+		if err != nil {
+			log.WithField("err", err).Fatalf("Could not create temporary file to store the chart.")
+		}
 
-	if _, err := tmpfile.WriteString(baseTemplateHeaderString); err != nil {
-		log.WithField("err", err).Fatalf("Could not write header to temporary file.")
+		if _, err = fh.WriteString(baseTemplateHeaderString); err != nil {
+			log.WithField("err", err).Fatalf("Could not write header to temporary file.")
+		}
+	} else {
+		fh, err = os.Create(o.fileName)
+		if err != nil {
+			log.WithField("err", err).Fatalf(fmt.Sprintf("Could not create file %s to store the chart.", o.fileName))
+		}
+		if _, err = fh.WriteString(baseTemplateHeaderString); err != nil {
+			log.WithField("err", err).Fatalf(fmt.Sprintf("Could not write header to file %s.", o.fileName))
+		}
 	}
 
 	t := baseTemplate
 	if o.chartType == pie {
 		t = basePieTemplate
 	}
-	if err = t.Execute(tmpfile, b.String()); err != nil {
-		log.WithField("err", err).Fatalf("Could not write chart to temporary file.")
+	if err = t.Execute(fh, b.String()); err != nil {
+		log.WithField("err", err).Fatalf("Could not write chart to file.")
 	}
 
-	if _, err := tmpfile.WriteString(baseTemplateFooterString); err != nil {
-		log.WithField("err", err).Fatalf("Could not write footer to temporary file.")
+	if _, err = fh.WriteString(baseTemplateFooterString); err != nil {
+		log.WithField("err", err).Fatalf("Could not write footer to file.")
 	}
 
-	if err = tmpfile.Close(); err != nil {
-		log.WithField("err", err).Fatalf("Could not close temporary file after saving chart to it.")
+	if err = fh.Close(); err != nil {
+		log.WithField("err", err).Fatalf("Could not close file after saving chart to it.")
 	}
 
-	newName := tmpfile.Name() + ".html"
-	if err = os.Rename(tmpfile.Name(), newName); err != nil {
-		log.WithField("err", err).Fatalf("Could not add html extension to the temporary file.")
+	if strings.Compare(o.fileName, "") == 0 {
+		newName := fh.Name() + ".html"
+		if err = os.Rename(fh.Name(), newName); err != nil {
+			log.WithField("err", err).Fatalf("Could not add html extension to the temporary file.")
+		}
+		open.Run("file://" + newName)
+	} else {
+		open.Run("file://" + o.fileName)
 	}
-
-	open.Run("file://" + newName)
 }
 
 func buildChart(r io.Reader, o options) ([]string, options, bytes.Buffer, error) {

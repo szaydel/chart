@@ -29,6 +29,7 @@ type options struct {
 	xLabel     string
 	yLabel     string
 	dateFormat string
+	fileName   string
 	zeroBased  bool
 	debug      bool
 	help       bool
@@ -47,6 +48,7 @@ func resolveOptions(args []string) (options, error) {
 	xLabelHelp := "Sets the label for the x axis."
 	yLabelHelp := "Sets the label for the y axis."
 	dateFormatHelp := "Sets the date format, according to https://golang.org/src/time/format.go."
+	fileNameHelp := "Specify path to file instead of system-generated."
 	zeroBasedHelp := "Makes y-axis begin at zero."
 	debugHelp := "Use to make sure to double-check the chart is showing what you expect."
 	helpHelp := "Show help."
@@ -58,9 +60,11 @@ func resolveOptions(args []string) (options, error) {
 	fs.StringVar(&o.title, "t", o.title, titleHelp)
 	fs.StringVar(&o.xLabel, "x", o.xLabel, xLabelHelp)
 	fs.StringVar(&o.yLabel, "y", o.yLabel, yLabelHelp)
-	fs.StringVar(&o.dateFormat, "date-format", o.dateFormat, dateFormatHelp) //TODO document
-	fs.BoolVar(&o.zeroBased, "zero-based", o.zeroBased, zeroBasedHelp)       //TODO document
-	fs.BoolVar(&o.debug, "debug", o.debug, debugHelp)                        //TODO document
+	fs.StringVar(&o.dateFormat, "date-format", o.dateFormat, dateFormatHelp)
+	fs.StringVar(&o.fileName, "filename", o.fileName, fileNameHelp)
+	//TODO document
+	fs.BoolVar(&o.zeroBased, "zero-based", o.zeroBased, zeroBasedHelp) //TODO document
+	fs.BoolVar(&o.debug, "debug", o.debug, debugHelp)                  //TODO document
 	fs.BoolVar(&o.help, "help", o.help, helpHelp)
 	fs.BoolVar(&o.help, "h", o.help, helpHelp)
 
